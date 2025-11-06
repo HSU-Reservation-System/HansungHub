@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ReservationActivity">
+
+    <!-- 장소 선택 스피너 -->
+    <Spinner
+        android:id="@+id/spinnerPlace"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="32dp"
+        android:layout_marginEnd="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- 참여 인원 이름 -->
+    <EditText
+        android:id="@+id/etMembers"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:hint="참여 인원 이름 (예: 홍길동, 김철수)"
+        android:inputType="text"
+        app:layout_constraintEnd_toEndOf="@id/spinnerPlace"
+        app:layout_constraintStart_toStartOf="@id/spinnerPlace"
+        app:layout_constraintTop_toBottomOf="@id/spinnerPlace" />
+
+    <!-- 총 인원 수 -->
+    <EditText
+        android:id="@+id/etPeopleCount"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:hint="총 인원 수 (예: 2)"
+        android:inputType="number"
+        app:layout_constraintEnd_toEndOf="@id/etMembers"
+        app:layout_constraintStart_toStartOf="@id/etMembers"
+        app:layout_constraintTop_toBottomOf="@id/etMembers" />
+
+    <!-- 날짜 선택 -->
+    <TextView
+        android:id="@+id/tvSelectedDate"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:padding="16dp"
+        android:text="날짜를 선택하세요"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toEndOf="@id/etPeopleCount"
+        app:layout_constraintStart_toStartOf="@id/etPeopleCount"
+        app:layout_constraintTop_toBottomOf="@id/etPeopleCount" />
+
+    <!-- 시작 시간 선택 -->
+    <TextView
+        android:id="@+id/tvSelectedStartTime"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="8dp"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:padding="16dp"
+        android:text="시작 시간"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toStartOf="@+id/textViewHyphen"
+        app:layout_constraintStart_toStartOf="@id/tvSelectedDate"
+        app:layout_constraintTop_toBottomOf="@id/tvSelectedDate" />
+
+    <TextView
+        android:id="@+id/textViewHyphen"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="-"
+        android:textSize="20sp"
+        app:layout_constraintBottom_toBottomOf="@id/tvSelectedStartTime"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/tvSelectedStartTime" />
+
+    <!-- 종료 시간 선택 -->
+    <TextView
+        android:id="@+id/tvSelectedEndTime"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:padding="16dp"
+        android:text="종료 시간"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toEndOf="@id/tvSelectedDate"
+        app:layout_constraintStart_toEndOf="@+id/textViewHyphen"
+        app:layout_constraintTop_toTopOf="@id/tvSelectedStartTime" />
+
+    <!-- 예약하기 버튼 -->
+    <Button
+        android:id="@+id/btnReserve"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="32dp"
+        android:text="예약하기"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@id/tvSelectedEndTime"
+        app:layout_constraintStart_toStartOf="@id/tvSelectedStartTime" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
