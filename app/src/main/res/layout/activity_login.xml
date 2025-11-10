@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/white"
+    android:fillViewport="true"
+    tools:context="login.LoginActivity">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:padding="24dp">
+
+        <ImageView
+            android:id="@+id/HSU_text"
+            android:layout_width="100dp"
+            android:layout_height="60dp"
+            android:src="@drawable/hsu_text"
+            android:layout_gravity="start" />
+
+        <!-- 상단 HSU 캐릭터 -->
+        <ImageView
+            android:id="@+id/ivHsuMascot"
+            android:layout_width="250dp"
+            android:layout_height="300dp"
+            android:src="@drawable/login_logo"
+            android:contentDescription="@string/hsu_mascot" />
+
+        <!-- 입력 영역을 CardView로 감싸기 -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="45dp"
+            android:radius="12dp"
+            android:elevation="4dp"
+            android:padding="20dp">
+
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <!-- Hansung ID -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Hansung ID"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="4dp"/>
+
+                <EditText
+                    android:id="@+id/etStudentId"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:hint="학번"
+                    android:background="@drawable/rounded_edittext"
+                    android:padding="12dp"
+                    android:inputType="text"
+                    android:textSize="15sp" />
+
+                <!-- Password -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Password"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="4dp"/>
+
+                <EditText
+                    android:id="@+id/etPassword"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:hint="비밀번호"
+                    android:background="@drawable/rounded_edittext"
+                    android:padding="12dp"
+                    android:inputType="textPassword"
+                    android:textSize="15sp"/>
+
+                <!-- Sign In Button -->
+                <Button
+                    android:id="@+id/btnLogin"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:text="로그인"
+                    android:layout_marginTop="20dp"
+                    android:backgroundTint="@color/black"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    android:fontFamily="sans-serif-medium" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </LinearLayout>
+</ScrollView>
