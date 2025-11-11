@@ -1,92 +1,68 @@
 package com.winterflw.hansunghub.login
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.winterflw.hansunghub.MainActivity
 import com.winterflw.hansunghub.databinding.ActivityLoginBinding
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.*
+import retrofit2.*
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.Body
+import retrofit2.http.POST
+
+data class LoginRequest(val studentId: String, val password: String)
+data class LoginResponse(val success: Boolean, val sessionId: String?)
+
+interface HansungApi {
+    @POST("/login")
+    fun login(@Body body: LoginRequest): Call<LoginResponse>
+}
 
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLoginBinding
-
-    // 리다이렉트 직접 감지하도록 설정
-    private val client = OkHttpClient.Builder()
-        .followRedirects(false)
-        .build()
+    private lateinit var api: HansungApi
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        val retrofit = Retrofit.Builder()
+            .baseUrl("http://43.203.173.74:8000") // ⚠️ 현재는 HTTPS 미적용 상태
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+
+        api = retrofit.create(HansungApi::class.java)
+
         binding.btnLogin.setOnClickListener {
-            val id = binding.etStudentId.text.toString().trim()
-            val pw = binding.etPassword.text.toString().trim()
+            val id = binding.etStudentId.text.toString()
+            val pw = binding.etPassword.text.toString()
 
-            if (id.isEmpty() || pw.isEmpty()) {
-                Toast.makeText(this, "학번과 비밀번호를 입력하세요.", Toast.LENGTH_SHORT).show()
-            } else {
-                tryHansungLogin(id, pw)
-            }
-        }
-    }
+            api.login(LoginRequest(id, pw)).enqueue(object : Callback<LoginResponse> {
+                override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
+                    val body = response.body()
+                    if (body?.success == true) {
+                        // 로그인 성공 시 sessionId 저장
+                        val prefs = getSharedPreferences("HansungHubPrefs", MODE_PRIVATE)
+                        prefs.edit().putString("sessionId", body.sessionId).apply()
 
-    private fun tryHansungLogin(userId: String, userPwd: String) {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val loginUrl = "https://hansung.ac.kr/hnuLogin/cncschool/loginProcess.do"
+                        // ✅ 저장 확인용 로그
+                        val savedSession = prefs.getString("sessionId", null)
+                        Log.d("HansungLogin", "Saved sessionId: $savedSession")
 
-                val formBody = FormBody.Builder()
-                    .add("siteId", "cncschool")
-                    .add("returnUrl", "")
-                    .add("referer", "/cncschool/index.do")
-                    .add("inputUserId", userId)
-                    .add("inputUserPwd", userPwd)
-                    .build()
-
-                val request = Request.Builder()
-                    .url(loginUrl)
-                    .post(formBody)
-                    .header("User-Agent", "Mozilla/5.0 (Android HansungHub)")
-                    .header("Referer", "https://hansung.ac.kr/hnuLogin/cncschool/loginView.do")
-                    .header("Origin", "https://hansung.ac.kr")
-                    .build()
-
-                val response = client.newCall(request).execute()
-                val statusCode = response.code
-                val cookies = response.headers("Set-Cookie")
-                val location = response.header("Location")
-
-                Log.d("HansungLogin", "StatusCode: $statusCode")
-                Log.d("HansungLogin", "Cookies: $cookies")
-                Log.d("HansungLogin", "Location: $location")
-
-                withContext(Dispatchers.Main) {
-                    when {
-                        statusCode == 302 && cookies.isNotEmpty() -> {
-                            Toast.makeText(this@LoginActivity, "✅ 로그인 성공!", Toast.LENGTH_SHORT).show()
-                        }
-                        statusCode == 200 -> {
-                            Toast.makeText(this@LoginActivity, "❌ 로그인 실패 (아이디/비밀번호 확인)", Toast.LENGTH_SHORT).show()
-                        }
-                        else -> {
-                            Toast.makeText(this@LoginActivity, "⚠️ 응답 코드: $statusCode", Toast.LENGTH_SHORT).show()
-                        }
+                        // 다음 화면으로 이동
+                        startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+                    } else {
+                        binding.tvStatus.text = "로그인 실패"
                     }
                 }
 
-            } catch (e: Exception) {
-                e.printStackTrace()
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@LoginActivity, "네트워크 오류: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
+                    binding.tvStatus.text = "서버 연결 실패"
                 }
-            }
+            })
         }
     }
 }
