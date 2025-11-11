@@ -17,7 +17,7 @@ import java.util.Locale
 /**
  * activity_reservation.xml 레이아웃을 사용하는 예약 화면 액티비티입니다.
  */
-class ReservationActivity : AppCompatActivity() {
+class eservationActivity : AppCompatActivity() {
 
     // Calendar 객체를 멤버 변수로 선언하여 날짜와 시간 선택에 사용합니다.
     private val calendar: Calendar = Calendar.getInstance()
