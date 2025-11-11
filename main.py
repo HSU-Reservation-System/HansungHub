@@ -1,44 +1,58 @@
-from fastapi import FastAPI, Form
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 import requests
 
-app = FastAPI()
+app = FastAPI(title="HansungHub FastAPI Server")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+LOGIN_URL = "https://hansung.ac.kr/hnuLogin/cncschool/loginProcess.do"
+RESERVE_URL = "https://hansung.ac.kr/facility/reserve"  # (예시용 URL, 실제는 바꿔야 함)
+
+# ✅ 로그인 요청 Body
+class LoginItem(BaseModel):
+    studentId: str
+    password: str
+
+# ✅ 예약 요청 Body
+class ReserveItem(BaseModel):
+    sessionId: str
+    facility: str
+    time: str
+
 
 @app.post("/login")
-def login(userId: str = Form(...), userPwd: str = Form(...)):
-    login_url = "https://hansung.ac.kr/hnuLogin/cncschool/loginProcess.do"
+def login(item: LoginItem):
+    session = requests.Session()
     payload = {
-        "siteId": "cncschool",
-        "returnUrl": "",
-        "referer": "/cncschool/index.do",
-        "inputUserId": userId,
-        "inputUserPwd": userPwd,
+        "id": item.studentId,
+        "pwd": item.password
     }
 
-    session = requests.Session()
-    res = session.post(login_url, data=payload, allow_redirects=False)
-
+    res = session.post(LOGIN_URL, data=payload)
     cookies = session.cookies.get_dict()
-    location = res.headers.get("Location", "")
-    success = "JSESSIONID" in cookies and "index.do" in location
 
-    if success:
+    # 로그인 성공 판별
+    if "JSESSIONID" in cookies:
         return {
             "success": True,
-            "session_cookie": cookies["JSESSIONID"],
-            "redirect": location
+            "sessionId": cookies["JSESSIONID"]
         }
     else:
-        return {
-            "success": False,
-            "message": "로그인 실패",
-            "redirect": location
-        }
+        return {"success": False}
+
+
+@app.post("/reserve")
+def reserve(item: ReserveItem):
+    # 클라이언트로부터 전달받은 sessionId 사용
+    headers = {"Cookie": f"JSESSIONID={item.sessionId}"}
+
+    payload = {
+        "facility": item.facility,
+        "time": item.time
+    }
+
+    res = requests.post(RESERVE_URL, headers=headers, data=payload)
+
+    if res.status_code == 200:
+        return {"success": True, "message": "예약 성공", "response": res.text}
+    else:
+        raise HTTPException(status_code=400, detail="예약 실패")
