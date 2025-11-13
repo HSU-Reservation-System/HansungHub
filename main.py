@@ -5,54 +5,54 @@ import requests
 app = FastAPI(title="HansungHub FastAPI Server")
 
 LOGIN_URL = "https://hansung.ac.kr/hnuLogin/cncschool/loginProcess.do"
-RESERVE_URL = "https://hansung.ac.kr/facility/reserve"  # (예시용 URL, 실제는 바꿔야 함)
 
-# ✅ 로그인 요청 Body
+
 class LoginItem(BaseModel):
     studentId: str
     password: str
 
-# ✅ 예약 요청 Body
-class ReserveItem(BaseModel):
-    sessionId: str
-    facility: str
-    time: str
+
+class LoginResponse(BaseModel):
+    success: bool
+    sessionId: str | None = None
 
 
-@app.post("/login")
+@app.post("/login", response_model=LoginResponse)
 def login(item: LoginItem):
     session = requests.Session()
+
+    # ✔ 학교 서버가 요구하는 정확한 Form Data
     payload = {
-        "id": item.studentId,
-        "pwd": item.password
+        "siteId": "cncschool",
+        "returnUrl": "/cncschool/index.do",
+        "referer": "/cncschool/index.do",
+        "inputUserId": item.studentId,
+        "inputUserPwd": item.password
     }
 
-    res = session.post(LOGIN_URL, data=payload)
+    # ✔ 학교 서버와 비슷한 헤더 추가 (중요!)
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "Mozilla/5.0",
+        "Referer": "https://hansung.ac.kr/hnuLogin/cncschool/loginView.do",
+    }
+
+    try:
+        res = session.post(LOGIN_URL, data=payload, headers=headers)
+    except Exception:
+        raise HTTPException(status_code=500, detail="학교 로그인 서버와 통신 실패")
+
+    html = res.text
+    print("===== HTML RESPONSE =====")
+    print(html)
+
+    # ✔ 실패 문구 체크
+    if "회원정보이(가) 일치하지 않습니다" in html:
+        return LoginResponse(success=False, sessionId=None)
+
+    # ✔ 성공 시 쿠키 추출
     cookies = session.cookies.get_dict()
-
-    # 로그인 성공 판별
     if "JSESSIONID" in cookies:
-        return {
-            "success": True,
-            "sessionId": cookies["JSESSIONID"]
-        }
-    else:
-        return {"success": False}
+        return LoginResponse(success=True, sessionId=cookies["JSESSIONID"])
 
-
-@app.post("/reserve")
-def reserve(item: ReserveItem):
-    # 클라이언트로부터 전달받은 sessionId 사용
-    headers = {"Cookie": f"JSESSIONID={item.sessionId}"}
-
-    payload = {
-        "facility": item.facility,
-        "time": item.time
-    }
-
-    res = requests.post(RESERVE_URL, headers=headers, data=payload)
-
-    if res.status_code == 200:
-        return {"success": True, "message": "예약 성공", "response": res.text}
-    else:
-        raise HTTPException(status_code=400, detail="예약 실패")
+    return LoginResponse(success=False, sessionId=None)
