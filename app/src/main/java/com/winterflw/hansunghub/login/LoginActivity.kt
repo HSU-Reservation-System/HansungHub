@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import com.google.gson.annotations.SerializedName   // ❗ 반드시 필요
 import com.winterflw.hansunghub.MainActivity
 import com.winterflw.hansunghub.databinding.ActivityLoginBinding
 import retrofit2.*
@@ -12,7 +13,15 @@ import retrofit2.http.Body
 import retrofit2.http.POST
 
 data class LoginRequest(val studentId: String, val password: String)
-data class LoginResponse(val success: Boolean, val sessionId: String?)
+
+data class LoginResponse(
+    @SerializedName("success")
+    val success: Boolean,
+
+    @SerializedName("sessionId")      // 서버 JSON key와 일치!
+    val sessionId: String?
+)
+
 
 interface HansungApi {
     @POST("/login")
@@ -30,7 +39,7 @@ class LoginActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         val retrofit = Retrofit.Builder()
-            .baseUrl("http://43.203.173.74:8000") // ⚠️ 현재는 HTTPS 미적용 상태
+            .baseUrl("http://43.203.173.74:8000") // ⚠️ HTTPS 미적용 상태
             .addConverterFactory(GsonConverterFactory.create())
             .build()
 
@@ -41,18 +50,28 @@ class LoginActivity : AppCompatActivity() {
             val pw = binding.etPassword.text.toString()
 
             api.login(LoginRequest(id, pw)).enqueue(object : Callback<LoginResponse> {
-                override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
+                override fun onResponse(
+                    call: Call<LoginResponse>,
+                    response: Response<LoginResponse>
+                ) {
+                    // 서버 응답 자체가 실패한 경우
+                    if (!response.isSuccessful) {
+                        binding.tvStatus.text = "서버 오류"
+                        return
+                    }
+
                     val body = response.body()
-                    if (body?.success == true) {
-                        // 로그인 성공 시 sessionId 저장
+
+                    // JSON 파싱 실패
+                    if (body == null) {
+                        binding.tvStatus.text = "잘못된 응답"
+                        return
+                    }
+
+                    if (body.success) {
                         val prefs = getSharedPreferences("HansungHubPrefs", MODE_PRIVATE)
                         prefs.edit().putString("sessionId", body.sessionId).apply()
 
-                        // ✅ 저장 확인용 로그
-                        val savedSession = prefs.getString("sessionId", null)
-                        Log.d("HansungLogin", "Saved sessionId: $savedSession")
-
-                        // 다음 화면으로 이동
                         startActivity(Intent(this@LoginActivity, MainActivity::class.java))
                     } else {
                         binding.tvStatus.text = "로그인 실패"
@@ -63,6 +82,7 @@ class LoginActivity : AppCompatActivity() {
                     binding.tvStatus.text = "서버 연결 실패"
                 }
             })
+
         }
     }
 }
