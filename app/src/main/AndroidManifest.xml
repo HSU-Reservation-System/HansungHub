@@ -33,10 +33,6 @@
             android:name=".MainActivity"
             android:exported="false" />
 
-        <!-- 예약 화면 (다른 팀원 담당 예정) -->
-        <activity
-            android:name=".ReservationActivity"
-            android:exported="false" />
 
     </application>
 </manifest>
