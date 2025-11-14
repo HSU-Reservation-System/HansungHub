@@ -72,6 +72,9 @@ class LoginActivity : AppCompatActivity() {
                         val prefs = getSharedPreferences("HansungHubPrefs", MODE_PRIVATE)
                         prefs.edit().putString("sessionId", body.sessionId).apply()
 
+                        val savedSession = prefs.getString("sessionId", null)
+                        Log.d("HansungLogin", "sessionId for Postman = $savedSession")
+
                         startActivity(Intent(this@LoginActivity, MainActivity::class.java))
                     } else {
                         binding.tvStatus.text = "로그인 실패"
