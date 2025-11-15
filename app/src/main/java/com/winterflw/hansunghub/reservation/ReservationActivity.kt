@@ -5,11 +5,10 @@ import android.os.Bundle
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.winterflw.hansunghub.R
 import com.winterflw.hansunghub.databinding.DialogReservationSuccessBinding
-import com.winterflw.hansunghub.databinding.ItemReserveResultBinding
 import com.winterflw.hansunghub.network.RetrofitClient
 import com.winterflw.hansunghub.network.model.ReserveRequest
 import com.winterflw.hansunghub.network.model.ReserveResultItem
@@ -22,10 +21,8 @@ class ReservationActivity : AppCompatActivity() {
 
     private val calendar: Calendar = Calendar.getInstance()
 
-    // UI 요소
+    // UI 요소 (필요없는 2개 — etMembers, etPeopleCount 제거)
     private lateinit var spinnerPlace: Spinner
-    private lateinit var etMembers: EditText
-    private lateinit var etPeopleCount: EditText
     private lateinit var tvSelectedDate: TextView
     private lateinit var tvSelectedTime: TextView
     private lateinit var rvTime: RecyclerView
@@ -34,13 +31,12 @@ class ReservationActivity : AppCompatActivity() {
     // 시간 선택 관련 변수
     private lateinit var timeAdapter: TimeSlotAdapter
     private lateinit var timeSlots: MutableList<TimeSlot>
-    private val selectedTimes = mutableSetOf<String>()   // 여러 시간 저장
-    private var disabledTimes = listOf<String>()         // 서버에서 받은 비활성 시간
+    private val selectedTimes = mutableSetOf<String>()
+    private var disabledTimes = listOf<String>()
 
     // 공간 정보 매핑
     private var placeNames = listOf<String>()
     private var placeSeqs = listOf<Int>()
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,8 +44,6 @@ class ReservationActivity : AppCompatActivity() {
 
         // XML 뷰 연결
         spinnerPlace = findViewById(R.id.spinnerPlace)
-        etMembers = findViewById(R.id.etMembers)
-        etPeopleCount = findViewById(R.id.etPeopleCount)
         tvSelectedDate = findViewById(R.id.tvSelectedDate)
         tvSelectedTime = findViewById(R.id.tvSelectedTime)
         rvTime = findViewById(R.id.rvTime)
@@ -59,9 +53,7 @@ class ReservationActivity : AppCompatActivity() {
         loadSpaces()
 
         // 날짜 선택
-        tvSelectedDate.setOnClickListener {
-            showDatePicker()
-        }
+        tvSelectedDate.setOnClickListener { showDatePicker() }
 
         // 시간 선택 RecyclerView 구성
         setupTimeRecyclerView()
@@ -70,18 +62,13 @@ class ReservationActivity : AppCompatActivity() {
         btnReserve.setOnClickListener {
 
             if (!validateInput()) {
-                Toast.makeText(this, "모든 항목을 입력해주세요.", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            if (selectedTimes.isEmpty()) {
-                Toast.makeText(this, "시간을 선택해주세요.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "날짜와 시간을 선택해주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
             val placeName = spinnerPlace.selectedItem.toString()
             val rawDate = tvSelectedDate.text.toString()
-            val date = rawDate.substring(0, 10)   // "2025-11-17"
+            val date = rawDate.substring(0, 10)
 
             val idx = placeNames.indexOf(placeName)
             if (idx == -1) {
@@ -102,8 +89,6 @@ class ReservationActivity : AppCompatActivity() {
             CoroutineScope(Dispatchers.Main).launch {
                 try {
                     val result = RetrofitClient.api.reserve(request)
-
-                    // 📌 예약 성공/실패 결과 Dialog 띄우기
                     showReserveSuccessDialog(result.results)
 
                 } catch (e: Exception) {
@@ -118,7 +103,7 @@ class ReservationActivity : AppCompatActivity() {
     }
 
     // ---------------------------------------------------------
-    // *** 예약 성공 Dialog ***
+    // 예약 결과 Dialog
     // ---------------------------------------------------------
     private fun showReserveSuccessDialog(results: List<ReserveResultItem>) {
 
@@ -130,7 +115,6 @@ class ReservationActivity : AppCompatActivity() {
             .setCancelable(false)
             .create()
 
-        // RecyclerView 설정 (결과 리스트)
         dialogBinding.rvTimes.apply {
             layoutManager = LinearLayoutManager(this@ReservationActivity)
             adapter = ReserveResultAdapter(results)
@@ -195,9 +179,8 @@ class ReservationActivity : AppCompatActivity() {
         tvSelectedDate.text = sdf.format(calendar.time)
     }
 
-
     // ---------------------------------------------------------
-    // 서버에서 비활성 시간 받아오기
+    // 비활성 시간 조회
     // ---------------------------------------------------------
     private fun fetchDisabledTimes() {
         if (placeNames.isEmpty()) return
@@ -205,7 +188,7 @@ class ReservationActivity : AppCompatActivity() {
 
         val placeName = spinnerPlace.selectedItem.toString()
         val spaceSeq = placeSeqs[placeNames.indexOf(placeName)]
-        val date = tvSelectedDate.text.substring(0, 10) // yyyy-MM-dd
+        val date = tvSelectedDate.text.substring(0, 10)
 
         CoroutineScope(Dispatchers.Main).launch {
             try {
@@ -234,7 +217,6 @@ class ReservationActivity : AppCompatActivity() {
         tvSelectedTime.text = "선택된 시간: 없음"
         timeAdapter.notifyDataSetChanged()
     }
-
 
     // ---------------------------------------------------------
     // 시간 RecyclerView 구성
@@ -273,9 +255,8 @@ class ReservationActivity : AppCompatActivity() {
         rvTime.adapter = timeAdapter
     }
 
-
     // ---------------------------------------------------------
-    // 시간 목록 생성
+    // 하루 시간 목록 생성
     // ---------------------------------------------------------
     private fun createDailyTimeSlots(): MutableList<TimeSlot> {
         val result = mutableListOf<TimeSlot>()
@@ -291,12 +272,10 @@ class ReservationActivity : AppCompatActivity() {
     }
 
     // ---------------------------------------------------------
-    // 입력값 검증
+    // 입력값 검증 (불필요한 항목 제거)
     // ---------------------------------------------------------
     private fun validateInput(): Boolean {
-        return etMembers.text.toString().isNotEmpty() &&
-                etPeopleCount.text.toString().isNotEmpty() &&
-                !tvSelectedDate.text.toString().contains("선택") &&
+        return !tvSelectedDate.text.contains("선택") &&
                 selectedTimes.isNotEmpty()
     }
 }
