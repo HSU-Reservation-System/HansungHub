@@ -1,6 +1,7 @@
 package com.winterflw.hansunghub.reservation
 
 import android.app.DatePickerDialog
+import android.util.Log
 import android.os.Bundle
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
@@ -89,6 +90,9 @@ class ReservationActivity : AppCompatActivity() {
             CoroutineScope(Dispatchers.Main).launch {
                 try {
                     val result = RetrofitClient.api.reserve(request)
+
+                    Log.d("Retrofit", "Response: ${result}")
+
                     showReserveSuccessDialog(result.results)
 
                 } catch (e: Exception) {
