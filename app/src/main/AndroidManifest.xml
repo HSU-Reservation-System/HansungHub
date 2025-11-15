@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- ✅ 네트워크 사용 -->
+    <!-- 네트워크 권한 -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
@@ -16,7 +16,7 @@
         android:theme="@style/Theme.Hansunghub"
         android:networkSecurityConfig="@xml/network_security_config">
 
-        <!-- 앱 실행 시 첫 화면: LoginActivity -->
+        <!-- 앱 시작: LoginActivity -->
         <activity
             android:name=".login.LoginActivity"
             android:exported="true"
@@ -28,11 +28,15 @@
             </intent-filter>
         </activity>
 
-        <!-- 이후 메인 화면 -->
+        <!-- 메인 화면 -->
         <activity
             android:name=".MainActivity"
             android:exported="false" />
 
+        <!-- 예약 화면 (정확한 Activity 이름으로 수정됨) -->
+        <activity
+            android:name=".reservation.ReservationActivity"
+            android:exported="false" />
 
     </application>
 </manifest>
