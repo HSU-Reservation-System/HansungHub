@@ -18,30 +18,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- 참여 인원 이름 -->
-    <EditText
-        android:id="@+id/etMembers"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:hint="참여 인원 이름 (예: 홍길동, 김철수)"
-        android:inputType="text"
-        app:layout_constraintEnd_toEndOf="@id/spinnerPlace"
-        app:layout_constraintStart_toStartOf="@id/spinnerPlace"
-        app:layout_constraintTop_toBottomOf="@id/spinnerPlace" />
-
-    <!-- 총 인원 수 -->
-    <EditText
-        android:id="@+id/etPeopleCount"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:hint="총 인원 수 (예: 2)"
-        android:inputType="number"
-        app:layout_constraintEnd_toEndOf="@id/etMembers"
-        app:layout_constraintStart_toStartOf="@id/etMembers"
-        app:layout_constraintTop_toBottomOf="@id/etMembers" />
-
     <!-- 날짜 선택 -->
     <TextView
         android:id="@+id/tvSelectedDate"
@@ -54,9 +30,9 @@
         android:padding="16dp"
         android:text="날짜를 선택하세요"
         android:textSize="16sp"
-        app:layout_constraintEnd_toEndOf="@id/etPeopleCount"
-        app:layout_constraintStart_toStartOf="@id/etPeopleCount"
-        app:layout_constraintTop_toBottomOf="@id/etPeopleCount" />
+        app:layout_constraintEnd_toEndOf="@id/spinnerPlace"
+        app:layout_constraintStart_toStartOf="@id/spinnerPlace"
+        app:layout_constraintTop_toBottomOf="@id/spinnerPlace" />
 
     <!-- 선택된 시간 표시 -->
     <TextView
