@@ -3,6 +3,7 @@ package com.winterflw.hansunghub.reservation
 import android.app.DatePickerDialog
 import android.util.Log
 import android.os.Bundle
+import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
@@ -82,10 +83,9 @@ class ReservationActivity : AppCompatActivity() {
                 spaceSeq = selectedSeq,
                 spaceName = placeName,
                 date = date,
-                timeList = selectedTimes.toList(),
-                tel = "01066278002",
-                email = "eric91405@naver.com"
+                timeList = selectedTimes.toList()
             )
+
 
             CoroutineScope(Dispatchers.Main).launch {
                 try {
@@ -150,11 +150,29 @@ class ReservationActivity : AppCompatActivity() {
                 adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
                 spinnerPlace.adapter = adapter
 
+                // ★★★ 여기 추가 ★★★
+                spinnerPlace.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                    override fun onItemSelected(
+                        parent: AdapterView<*>?,
+                        view: View?,
+                        position: Int,
+                        id: Long
+                    ) {
+                        // 날짜가 선택되어 있을 때만 실행
+                        if (tvSelectedDate.text.contains("-")) {
+                            fetchDisabledTimes()
+                        }
+                    }
+
+                    override fun onNothingSelected(parent: AdapterView<*>?) {}
+                }
+
             } catch (e: Exception) {
                 Toast.makeText(this@ReservationActivity, "공간 목록 불러오기 실패", Toast.LENGTH_SHORT).show()
             }
         }
     }
+
 
     // ---------------------------------------------------------
     // 날짜 선택 Dialog

@@ -27,6 +27,9 @@ class TimeSlotAdapter(
     override fun onBindViewHolder(holder: TimeSlotViewHolder, position: Int) {
         val item = items[position]
 
+        // 반드시 먼저 초기화해야 함 (재활용 문제 해결)
+        holder.binding.tvTime.isEnabled = true
+
         holder.binding.tvTime.text = item.time
 
         when {
@@ -43,9 +46,12 @@ class TimeSlotAdapter(
         }
 
         holder.binding.tvTime.setOnClickListener {
-            if (item.isAvailable) onClick(item)
+            if (holder.binding.tvTime.isEnabled) {
+                onClick(item)
+            }
         }
     }
+
 
     override fun getItemCount(): Int = items.size
 }
