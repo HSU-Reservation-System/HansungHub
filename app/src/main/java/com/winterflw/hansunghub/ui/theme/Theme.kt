@@ -9,35 +9,47 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+    primary = HansungBlueLight,
+    secondary = AccentPurple,
+    tertiary = AccentCyan,
+    background = Color(0xFF1A1D2E),
+    surface = Color(0xFF252837),
     onPrimary = Color.White,
     onSecondary = Color.White,
     onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    onBackground = Color.White,
+    onSurface = Color.White
+)
+
+private val LightColorScheme = lightColorScheme(
+    primary = HansungBlue,
+    secondary = AccentPurple,
+    tertiary = AccentCyan,
+    background = BackgroundLight,
+    surface = BackgroundWhite,
+    onPrimary = Color.White,
+    onSecondary = Color.White,
+    onTertiary = Color.White,
+    onBackground = TextPrimary,
+    onSurface = TextPrimary,
+    primaryContainer = HansungBlueLight,
+    secondaryContainer = SurfaceLight,
+    onPrimaryContainer = HansungBlueDark,
+    onSecondaryContainer = TextSecondary
 )
 
 @Composable
 fun HansunghubTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false, // 브랜드 컬러 사용을 위해 false로 변경
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -48,6 +60,17 @@ fun HansunghubTheme(
 
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
+    }
+
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            // API 21 (Lollipop) 이상에서만 statusBarColor 설정
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                window.statusBarColor = colorScheme.background.toArgb()
+            }
+        }
     }
 
     MaterialTheme(

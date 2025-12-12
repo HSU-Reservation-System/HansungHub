@@ -1,10 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
+    <!-- Hansung Brand Colors -->
+    <color name="hansung_blue">#2E5BFF</color>
+    <color name="hansung_blue_dark">#1A3FCC</color>
+    <color name="hansung_blue_light">#6B8FFF</color>
+    
+    <!-- Background Colors -->
+    <color name="background_light">#F8F9FD</color>
+    <color name="surface_light">#F5F7FB</color>
+    
+    <!-- Text Colors -->
+    <color name="text_primary">#1A1D2E</color>
+    <color name="text_secondary">#6B7280</color>
+    
+    <!-- Material Design 3 -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 </resources>
