@@ -1,303 +1,417 @@
 package com.winterflw.hansunghub.reservation
 
-import android.app.DatePickerDialog
-import android.util.Log
+
+import android.content.Intent
 import android.os.Bundle
-import android.view.View
-import android.widget.*
-import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.winterflw.hansunghub.R
-import com.winterflw.hansunghub.databinding.DialogReservationSuccessBinding
+import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.EventNote
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.winterflw.hansunghub.login.LoginActivity
 import com.winterflw.hansunghub.network.RetrofitClient
-import com.winterflw.hansunghub.network.model.ReserveRequest
-import com.winterflw.hansunghub.network.model.ReserveResultItem
-import com.winterflw.hansunghub.network.model.TimeSlot
-import kotlinx.coroutines.*
-import java.text.SimpleDateFormat
-import java.util.*
+import com.winterflw.hansunghub.network.model.UserInfoResponse
+import com.winterflw.hansunghub.reservation.model.FacilityType
+import com.winterflw.hansunghub.ui.theme.*
+import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material3.Divider
 
-class ReservationActivity : AppCompatActivity() {
 
-    private val calendar: Calendar = Calendar.getInstance()
-
-    // UI 요소 (필요없는 2개 — etMembers, etPeopleCount 제거)
-    private lateinit var spinnerPlace: Spinner
-    private lateinit var tvSelectedDate: TextView
-    private lateinit var tvSelectedTime: TextView
-    private lateinit var rvTime: RecyclerView
-    private lateinit var btnReserve: Button
-
-    // 시간 선택 관련 변수
-    private lateinit var timeAdapter: TimeSlotAdapter
-    private lateinit var timeSlots: MutableList<TimeSlot>
-    private val selectedTimes = mutableSetOf<String>()
-    private var disabledTimes = listOf<String>()
-
-    // 공간 정보 매핑
-    private var placeNames = listOf<String>()
-    private var placeSeqs = listOf<Int>()
-
+class ReservationActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_reservation)
-
-        // XML 뷰 연결
-        spinnerPlace = findViewById(R.id.spinnerPlace)
-        tvSelectedDate = findViewById(R.id.tvSelectedDate)
-        tvSelectedTime = findViewById(R.id.tvSelectedTime)
-        rvTime = findViewById(R.id.rvTime)
-        btnReserve = findViewById(R.id.btnReserve)
-
-        // 공간 목록 불러오기
-        loadSpaces()
-
-        // 날짜 선택
-        tvSelectedDate.setOnClickListener { showDatePicker() }
-
-        // 시간 선택 RecyclerView 구성
-        setupTimeRecyclerView()
-
-        // 예약 버튼
-        btnReserve.setOnClickListener {
-
-            if (!validateInput()) {
-                Toast.makeText(this, "날짜와 시간을 선택해주세요.", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
+        setContent {
+            HansunghubTheme {
+                ReservationMainScreen()
             }
+        }
+    }
+}
 
-            val placeName = spinnerPlace.selectedItem.toString()
-            val rawDate = tvSelectedDate.text.toString()
-            val date = rawDate.substring(0, 10)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ReservationMainScreen() {
+    var selectedFacility by remember { mutableStateOf<FacilityType?>(null) }               // 예약 화면용
+    var selectedFacilityForDetail by remember { mutableStateOf<FacilityType?>(null) }      // 상세 페이지용
+    var showMyPage by remember { mutableStateOf(false) }
 
-            val idx = placeNames.indexOf(placeName)
-            if (idx == -1) {
-                Toast.makeText(this, "공간 정보 오류", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            val selectedSeq = placeSeqs[idx]
+    Scaffold(
+        containerColor = BackgroundLight,
+        bottomBar = {
+            ModernBottomNavigationBar(
+                showMyPage = showMyPage,
+                onReservationClick = {
+                    showMyPage = false
+                    selectedFacility = null
+                    selectedFacilityForDetail = null
+                },
+                onMyPageClick = {
+                    showMyPage = true
+                    selectedFacility = null
+                    selectedFacilityForDetail = null
+                }
+            )
+        }
+    ) { paddingValues ->
 
-            val request = ReserveRequest(
-                spaceSeq = selectedSeq,
-                spaceName = placeName,
-                date = date,
-                timeList = selectedTimes.toList()
+        when {
+            // 마이페이지
+            showMyPage -> MyPageScreen(
+                modifier = Modifier.padding(paddingValues)
             )
 
+            // 상세 페이지
+            selectedFacilityForDetail != null -> ReservationDetailPreviewScreen(
+                facility = selectedFacilityForDetail!!,
+                onBackClick = {      // 상세 -> 카드
+                    selectedFacilityForDetail = null
+                },
+                onReserveClick = { f ->    // 상세 -> 예약
+                    selectedFacility = f
+                    selectedFacilityForDetail = null
+                },
+                modifier = Modifier.padding(paddingValues)
+            )
 
-            CoroutineScope(Dispatchers.Main).launch {
-                try {
-                    val result = RetrofitClient.api.reserve(request)
-
-                    Log.d("Retrofit", "Response: ${result}")
-
-                    showReserveSuccessDialog(result.results)
-
-                } catch (e: Exception) {
-                    Toast.makeText(
-                        this@ReservationActivity,
-                        "오류 발생: ${e.message}",
-                        Toast.LENGTH_LONG
-                    ).show()
+            // 카드 페이지
+            selectedFacility == null -> ReservationScreen(
+                modifier = Modifier.padding(paddingValues),
+                onFacilitySelected = { facility ->
+                    selectedFacilityForDetail = facility     // 카드 -> 상세
                 }
-            }
+            )
+
+            // 예약 페이지
+            else -> ReservationDetailScreen(
+                facility = selectedFacility!!,
+                onBackClick = {          // 예약 -> 상세
+                    selectedFacilityForDetail = selectedFacility
+                    selectedFacility = null
+                }
+            )
         }
     }
+}
 
-    // ---------------------------------------------------------
-    // 예약 결과 Dialog
-    // ---------------------------------------------------------
-    private fun showReserveSuccessDialog(results: List<ReserveResultItem>) {
-
-        val dialogBinding =
-            DialogReservationSuccessBinding.inflate(layoutInflater)
-
-        val dialog = android.app.AlertDialog.Builder(this)
-            .setView(dialogBinding.root)
-            .setCancelable(false)
-            .create()
-
-        dialogBinding.rvTimes.apply {
-            layoutManager = LinearLayoutManager(this@ReservationActivity)
-            adapter = ReserveResultAdapter(results)
-        }
-
-        dialogBinding.btnOk.setOnClickListener {
-            dialog.dismiss()
-        }
-
-        dialog.show()
-    }
-
-    // ---------------------------------------------------------
-    // 공간 목록 불러오기
-    // ---------------------------------------------------------
-    private fun loadSpaces() {
-        CoroutineScope(Dispatchers.Main).launch {
-            try {
-                val res = RetrofitClient.api.getSpaces()
-
-                placeNames = res.spaces.map { it.spaceName }
-                placeSeqs = res.spaces.map { it.spaceSeq }
-
-                val adapter = ArrayAdapter(
-                    this@ReservationActivity,
-                    android.R.layout.simple_spinner_item,
-                    placeNames
-                )
-                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-                spinnerPlace.adapter = adapter
-
-                // ★★★ 여기 추가 ★★★
-                spinnerPlace.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-                    override fun onItemSelected(
-                        parent: AdapterView<*>?,
-                        view: View?,
-                        position: Int,
-                        id: Long
+/** 모던한 하단 네비게이션 */
+@Composable
+fun ModernBottomNavigationBar(
+    showMyPage: Boolean,
+    onReservationClick: () -> Unit,
+    onMyPageClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(8.dp, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)),
+        color = BackgroundWhite,
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+    ) {
+        NavigationBar(
+            containerColor = Color.Transparent,
+            modifier = Modifier.height(120.dp)
+        ) {
+            NavigationBarItem(
+                selected = !showMyPage,
+                onClick = onReservationClick,
+                icon = {
+                    Column(
+                        modifier = Modifier.padding(top = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // 날짜가 선택되어 있을 때만 실행
-                        if (tvSelectedDate.text.contains("-")) {
-                            fetchDisabledTimes()
+                        Box(
+                            modifier = Modifier
+                                .size(if (!showMyPage) 52.dp else 40.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .then(
+                                    if (!showMyPage) {
+                                        Modifier.background(
+                                            brush = Brush.horizontalGradient(
+                                                listOf(HansungBlue, HansungBlueLight)
+                                            )
+                                        )
+                                    } else {
+                                        Modifier.background(Color.Transparent)
+                                    }
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Filled.EventNote,
+                                "예약",
+                                tint = if (!showMyPage) Color.White else TextTertiary,
+                                modifier = Modifier.size(24.dp)
+                            )
                         }
                     }
-
-                    override fun onNothingSelected(parent: AdapterView<*>?) {}
-                }
-
-            } catch (e: Exception) {
-                Toast.makeText(this@ReservationActivity, "공간 목록 불러오기 실패", Toast.LENGTH_SHORT).show()
-            }
+                },
+                label = {
+                    Text(
+                        "예약",
+                        fontSize = 13.sp,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (!showMyPage) FontWeight.Bold else FontWeight.Normal,
+                        color = if (!showMyPage) HansungBlue else TextTertiary,
+                        maxLines = 1
+                    )
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    indicatorColor = Color.Transparent
+                )
+            )
+            NavigationBarItem(
+                selected = showMyPage,
+                onClick = onMyPageClick,
+                icon = {
+                    Column(
+                        modifier = Modifier.padding(top = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(if (showMyPage) 52.dp else 40.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .then(
+                                    if (showMyPage) {
+                                        Modifier.background(
+                                            brush = Brush.horizontalGradient(
+                                                listOf(HansungBlue, HansungBlueLight)
+                                            )
+                                        )
+                                    } else {
+                                        Modifier.background(Color.Transparent)
+                                    }
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Filled.Person,
+                                "마이페이지",
+                                tint = if (showMyPage) Color.White else TextTertiary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                },
+                label = {
+                    Text(
+                        "마이페이지",
+                        fontSize = 13.sp,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (showMyPage) FontWeight.Bold else FontWeight.Normal,
+                        color = if (showMyPage) HansungBlue else TextTertiary,
+                        maxLines = 1
+                    )
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    indicatorColor = Color.Transparent
+                )
+            )
         }
     }
+}
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MyPageScreen(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var userInfo by remember { mutableStateOf<UserInfoResponse?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
 
-    // ---------------------------------------------------------
-    // 날짜 선택 Dialog
-    // ---------------------------------------------------------
-    private fun showDatePicker() {
-        val year = calendar.get(Calendar.YEAR)
-        val month = calendar.get(Calendar.MONTH)
-        val day = calendar.get(Calendar.DAY_OF_MONTH)
-
-        DatePickerDialog(
-            this,
-            { _, selectedYear, selectedMonth, selectedDay ->
-                calendar.set(selectedYear, selectedMonth, selectedDay)
-                updateDateInView()
-                fetchDisabledTimes()
-            },
-            year, month, day
-        ).apply {
-            datePicker.minDate = System.currentTimeMillis() - 1000
-            show()
-        }
-    }
-
-    private fun updateDateInView() {
-        val sdf = SimpleDateFormat("yyyy-MM-dd (E)", Locale.KOREAN)
-        tvSelectedDate.text = sdf.format(calendar.time)
-    }
-
-    // ---------------------------------------------------------
-    // 비활성 시간 조회
-    // ---------------------------------------------------------
-    private fun fetchDisabledTimes() {
-        if (placeNames.isEmpty()) return
-        if (!tvSelectedDate.text.contains("-")) return
-
-        val placeName = spinnerPlace.selectedItem.toString()
-        val spaceSeq = placeSeqs[placeNames.indexOf(placeName)]
-        val date = tvSelectedDate.text.substring(0, 10)
-
-        CoroutineScope(Dispatchers.Main).launch {
+    // 사용자 정보 로드
+    LaunchedEffect(Unit) {
+        scope.launch {
             try {
-                val res = RetrofitClient.api.getDisabledTimes(date, spaceSeq)
-                disabledTimes = res.disabled
-
-                applyDisabledTimes()
-
+                userInfo = RetrofitClient.api.getUserInfo()
             } catch (e: Exception) {
-                Toast.makeText(this@ReservationActivity, "비활성 시간 불러오기 실패", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "정보 로드 실패: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                isLoading = false
             }
         }
     }
 
-    // ---------------------------------------------------------
-    // 비활성 시간 적용
-    // ---------------------------------------------------------
-    private fun applyDisabledTimes() {
-        selectedTimes.clear()
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(BackgroundLight)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            Spacer(modifier = Modifier.height(40.dp))
 
-        timeSlots.forEach { slot ->
-            slot.isAvailable = !disabledTimes.contains(slot.time)
-            slot.isSelected = false
-        }
-
-        tvSelectedTime.text = "선택된 시간: 없음"
-        timeAdapter.notifyDataSetChanged()
-    }
-
-    // ---------------------------------------------------------
-    // 시간 RecyclerView 구성
-    // ---------------------------------------------------------
-    private fun setupTimeRecyclerView() {
-
-        timeSlots = createDailyTimeSlots()
-
-        timeAdapter = TimeSlotAdapter(timeSlots) { clicked ->
-
-            if (!clicked.isAvailable) {
-                Toast.makeText(this, "예약 불가한 시간입니다.", Toast.LENGTH_SHORT).show()
-                return@TimeSlotAdapter
+            // 프로필 아이콘
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .clip(RoundedCornerShape(50.dp))
+                    .background(
+                        Brush.linearGradient(
+                            listOf(HansungBlue, HansungBlueLight)
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Filled.Person,
+                    contentDescription = "Profile",
+                    tint = Color.White,
+                    modifier = Modifier.size(50.dp)
+                )
             }
 
-            if (clicked.time in selectedTimes) {
-                selectedTimes.remove(clicked.time)
-                clicked.isSelected = false
-            } else {
-                if (selectedTimes.size >= 6) {
-                    Toast.makeText(this, "1일 최대 6시간까지 예약할 수 있습니다.", Toast.LENGTH_SHORT).show()
-                    return@TimeSlotAdapter
+            // 사용자 정보 카드
+            if (isLoading) {
+                CircularProgressIndicator(color = HansungBlue)
+            } else if (userInfo != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(4.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text(
+                            "내 정보",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+
+                        Divider(color = SurfaceLight)
+
+                        // 이름
+                        InfoRow(
+                            icon = Icons.Default.Person,
+                            label = "이름",
+                            value = userInfo!!.userNm
+                        )
+
+                        // 학번
+                        InfoRow(
+                            icon = Icons.Default.Badge,
+                            label = "학번",
+                            value = userInfo!!.hakbun
+                        )
+
+                        // 이메일
+                        InfoRow(
+                            icon = Icons.Default.Email,
+                            label = "이메일",
+                            value = userInfo!!.email
+                        )
+
+                        // 전화번호
+                        InfoRow(
+                            icon = Icons.Default.Phone,
+                            label = "전화번호",
+                            value = userInfo!!.telno
+                        )
+                    }
                 }
-                selectedTimes.add(clicked.time)
-                clicked.isSelected = true
+            } else {
+                Text(
+                    "정보를 불러올 수 없습니다",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = TextSecondary
+                )
             }
 
-            tvSelectedTime.text =
-                if (selectedTimes.isEmpty()) "선택된 시간: 없음"
-                else "선택된 시간: ${selectedTimes.joinToString()}"
+            Spacer(modifier = Modifier.weight(1f))
 
-            timeAdapter.notifyDataSetChanged()
+            // 로그아웃 버튼
+            Button(
+                onClick = {
+                    // LoginActivity로 이동하고 모든 액티비티 종료
+                    val intent = Intent(context, LoginActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    context.startActivity(intent)
+                    Toast.makeText(context, "로그아웃 되었습니다", Toast.LENGTH_SHORT).show()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFEF4444)
+                ),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Icon(Icons.Default.ExitToApp, "로그아웃")
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "로그아웃",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(80.dp)) // 바텀 네비게이션 공간
         }
-
-        rvTime.layoutManager = GridLayoutManager(this, 3)
-        rvTime.adapter = timeAdapter
     }
+}
 
-    // ---------------------------------------------------------
-    // 하루 시간 목록 생성
-    // ---------------------------------------------------------
-    private fun createDailyTimeSlots(): MutableList<TimeSlot> {
-        val result = mutableListOf<TimeSlot>()
-        val times = listOf(
-            "09:00", "10:00", "11:00", "12:00",
-            "13:00", "14:00", "15:00", "16:00",
-            "17:00", "18:00", "19:00", "20:00"
+@Composable
+fun InfoRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = HansungBlue,
+            modifier = Modifier.size(24.dp)
         )
-        times.forEach {
-            result.add(TimeSlot(time = it, isAvailable = true))
+        Column(
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = TextSecondary
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge,
+                color = TextPrimary,
+                fontWeight = FontWeight.Medium
+            )
         }
-        return result
-    }
-
-    // ---------------------------------------------------------
-    // 입력값 검증 (불필요한 항목 제거)
-    // ---------------------------------------------------------
-    private fun validateInput(): Boolean {
-        return !tvSelectedDate.text.contains("선택") &&
-                selectedTimes.isNotEmpty()
     }
 }
