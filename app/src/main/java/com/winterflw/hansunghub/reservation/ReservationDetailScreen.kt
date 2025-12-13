@@ -112,9 +112,14 @@ fun ReservationDetailScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(top = paddingValues.calculateTopPadding())
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 16.dp,
+                    bottom = paddingValues.calculateBottomPadding() + 100.dp
+                ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // 1. 공간 선택
@@ -360,8 +365,7 @@ fun ReservationDetailScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(80.dp)
-                    .padding(bottom = 24.dp),
+                    .height(56.dp),
                 enabled = !isLoading && selectedSpace != null && selectedDate.isNotEmpty() && selectedTimes.isNotEmpty(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(facility.color)

@@ -28,14 +28,15 @@ import androidx.compose.ui.graphics.graphicsLayer
 @Composable
 fun ReservationScreen(
     modifier: Modifier = Modifier,
-    onFacilitySelected: (FacilityType) -> Unit
+    onFacilitySelected: (FacilityType) -> Unit,
+    bottomPadding: PaddingValues = PaddingValues(0.dp)
 ) {
     var visible by remember { mutableStateOf(false) }
-    
+
     LaunchedEffect(Unit) {
         visible = true
     }
-    
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -78,7 +79,12 @@ fun ReservationScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                    .padding(
+                        start = 20.dp,
+                        end = 20.dp,
+                        top = 16.dp,
+                        bottom = bottomPadding.calculateBottomPadding() + 16.dp
+                    ),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 FacilityType.values().forEach { facility ->
