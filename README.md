@@ -65,6 +65,7 @@ app/src/main/java/com/winterflw/hansunghub/
 - Android Studio Hedgehog (2023.1.1) 이상
 - JDK 17 이상
 - Android SDK 34
+- BookingServer레포지터리의 서버 코드를 먼저 실행시켜야 함
 
 ### 설치 및 실행
 ```bash
